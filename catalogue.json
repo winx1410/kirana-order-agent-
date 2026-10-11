@@ -1,0 +1,526 @@
+[
+  {
+    "sku": "SKU-001",
+    "unit": "kg",
+    "price": 46,
+    "stock": 120,
+    "also_called": [
+      "chini",
+      "cheeni",
+      "shakkar"
+    ],
+    "substitutes": [],
+    "item": "Sugar (loose)"
+  },
+  {
+    "sku": "SKU-002",
+    "unit": "kg",
+    "price": 62,
+    "stock": 150,
+    "also_called": [
+      "rice",
+      "chawal",
+      "biyyam"
+    ],
+    "substitutes": [
+      "SKU-003"
+    ],
+    "item": "Sona Masoori Rice (loose)"
+  },
+  {
+    "sku": "SKU-003",
+    "unit": "kg",
+    "price": 55,
+    "stock": 200,
+    "also_called": [
+      "rice",
+      "chawal",
+      "ushna rice"
+    ],
+    "substitutes": [
+      "SKU-002"
+    ],
+    "item": "Boiled Rice (loose)"
+  },
+  {
+    "sku": "SKU-004",
+    "unit": "pack",
+    "price": 135,
+    "stock": 40,
+    "also_called": [
+      "rice",
+      "chawal",
+      "basmati"
+    ],
+    "substitutes": [
+      "SKU-002"
+    ],
+    "item": "India Gate Basmati Rice, 1 kg"
+  },
+  {
+    "sku": "SKU-005",
+    "unit": "pack",
+    "price": 285,
+    "stock": 25,
+    "also_called": [
+      "atta",
+      "gehu ka atta"
+    ],
+    "substitutes": [
+      "SKU-007"
+    ],
+    "item": "Aashirvaad Atta, 5 kg"
+  },
+  {
+    "sku": "SKU-006",
+    "unit": "pack",
+    "price": 540,
+    "stock": 12,
+    "also_called": [
+      "atta"
+    ],
+    "substitutes": [
+      "SKU-005"
+    ],
+    "item": "Aashirvaad Atta, 10 kg"
+  },
+  {
+    "sku": "SKU-007",
+    "unit": "pack",
+    "price": 270,
+    "stock": 18,
+    "also_called": [
+      "atta"
+    ],
+    "substitutes": [
+      "SKU-005"
+    ],
+    "item": "Pillsbury Atta, 5 kg"
+  },
+  {
+    "sku": "SKU-008",
+    "unit": "kg",
+    "price": 48,
+    "stock": 60,
+    "also_called": [
+      "atta",
+      "chakki atta"
+    ],
+    "substitutes": [
+      "SKU-005",
+      "SKU-007"
+    ],
+    "item": "Wheat Atta (loose)"
+  },
+  {
+    "sku": "SKU-009",
+    "unit": "kg",
+    "price": 160,
+    "stock": 80,
+    "also_called": [
+      "toor",
+      "arhar dal",
+      "kandi pappu"
+    ],
+    "substitutes": [],
+    "item": "Toor Dal (loose)"
+  },
+  {
+    "sku": "SKU-010",
+    "unit": "kg",
+    "price": 130,
+    "stock": 50,
+    "also_called": [
+      "moong",
+      "pesara pappu"
+    ],
+    "substitutes": [],
+    "item": "Moong Dal (loose)"
+  },
+  {
+    "sku": "SKU-011",
+    "unit": "kg",
+    "price": 100,
+    "stock": 45,
+    "also_called": [
+      "chana",
+      "senaga pappu"
+    ],
+    "substitutes": [],
+    "item": "Chana Dal (loose)"
+  },
+  {
+    "sku": "SKU-012",
+    "unit": "pack",
+    "price": 28,
+    "stock": 100,
+    "also_called": [
+      "salt",
+      "namak",
+      "uppu"
+    ],
+    "substitutes": [
+      "SKU-013"
+    ],
+    "item": "Tata Salt, 1 kg"
+  },
+  {
+    "sku": "SKU-013",
+    "unit": "pack",
+    "price": 26,
+    "stock": 40,
+    "also_called": [
+      "salt",
+      "namak",
+      "uppu"
+    ],
+    "substitutes": [
+      "SKU-012"
+    ],
+    "item": "Aashirvaad Salt, 1 kg"
+  },
+  {
+    "sku": "SKU-014",
+    "unit": "pouch",
+    "price": 135,
+    "stock": 60,
+    "also_called": [
+      "oil",
+      "tel",
+      "nune"
+    ],
+    "substitutes": [
+      "SKU-015",
+      "SKU-016"
+    ],
+    "item": "Fortune Sunflower Oil, 1 L"
+  },
+  {
+    "sku": "SKU-015",
+    "unit": "pouch",
+    "price": 140,
+    "stock": 35,
+    "also_called": [
+      "oil",
+      "tel",
+      "nune"
+    ],
+    "substitutes": [
+      "SKU-014"
+    ],
+    "item": "Gold Winner Sunflower Oil, 1 L"
+  },
+  {
+    "sku": "SKU-016",
+    "unit": "bottle",
+    "price": 210,
+    "stock": 20,
+    "also_called": [
+      "oil",
+      "tel",
+      "nune"
+    ],
+    "substitutes": [
+      "SKU-014"
+    ],
+    "item": "Saffola Gold Oil, 1 L"
+  },
+  {
+    "sku": "SKU-017",
+    "unit": "pack",
+    "price": 10,
+    "stock": 200,
+    "also_called": [
+      "parle g",
+      "glucose biscuit"
+    ],
+    "substitutes": [
+      "SKU-018"
+    ],
+    "item": "Parle-G Biscuits, 56 g"
+  },
+  {
+    "sku": "SKU-018",
+    "unit": "pack",
+    "price": 20,
+    "stock": 80,
+    "also_called": [
+      "good day",
+      "biscuit"
+    ],
+    "substitutes": [
+      "SKU-017"
+    ],
+    "item": "Britannia Good Day, 100 g"
+  },
+  {
+    "sku": "SKU-019",
+    "unit": "pack",
+    "price": 30,
+    "stock": 60,
+    "also_called": [
+      "marie",
+      "tea biscuit"
+    ],
+    "substitutes": [
+      "SKU-017"
+    ],
+    "item": "Britannia Marie Gold, 120 g"
+  },
+  {
+    "sku": "SKU-020",
+    "unit": "pack",
+    "price": 14,
+    "stock": 3,
+    "also_called": [
+      "maggi",
+      "noodles"
+    ],
+    "substitutes": [
+      "SKU-021"
+    ],
+    "item": "Maggi 2-Minute Noodles, 70 g"
+  },
+  {
+    "sku": "SKU-021",
+    "unit": "pack",
+    "price": 14,
+    "stock": 40,
+    "also_called": [
+      "noodles"
+    ],
+    "substitutes": [
+      "SKU-020"
+    ],
+    "item": "Yippee Noodles, 70 g"
+  },
+  {
+    "sku": "SKU-022",
+    "unit": "pack",
+    "price": 20,
+    "stock": 50,
+    "also_called": [
+      "chips",
+      "lays"
+    ],
+    "substitutes": [],
+    "item": "Lay's Classic Salted, 52 g"
+  },
+  {
+    "sku": "SKU-023",
+    "unit": "pack",
+    "price": 140,
+    "stock": 30,
+    "also_called": [
+      "tea",
+      "chai patti"
+    ],
+    "substitutes": [
+      "SKU-024"
+    ],
+    "item": "Tata Tea Gold, 250 g"
+  },
+  {
+    "sku": "SKU-024",
+    "unit": "pack",
+    "price": 120,
+    "stock": 25,
+    "also_called": [
+      "tea",
+      "chai patti"
+    ],
+    "substitutes": [
+      "SKU-023"
+    ],
+    "item": "Red Label Tea, 250 g"
+  },
+  {
+    "sku": "SKU-025",
+    "unit": "jar",
+    "price": 150,
+    "stock": 15,
+    "also_called": [
+      "coffee"
+    ],
+    "substitutes": [],
+    "item": "Bru Instant Coffee, 50 g"
+  },
+  {
+    "sku": "SKU-026",
+    "unit": "pack",
+    "price": 62,
+    "stock": 4,
+    "also_called": [
+      "butter"
+    ],
+    "substitutes": [],
+    "item": "Amul Butter, 100 g"
+  },
+  {
+    "sku": "SKU-027",
+    "unit": "pouch",
+    "price": 29,
+    "stock": 40,
+    "also_called": [
+      "milk",
+      "paalu"
+    ],
+    "substitutes": [],
+    "item": "Amul Taza Milk, 500 ml"
+  },
+  {
+    "sku": "SKU-028",
+    "unit": "pack",
+    "price": 45,
+    "stock": 10,
+    "also_called": [
+      "bread"
+    ],
+    "substitutes": [],
+    "item": "Modern Bread, 400 g"
+  },
+  {
+    "sku": "SKU-029",
+    "unit": "pack",
+    "price": 130,
+    "stock": 0,
+    "also_called": [
+      "surf",
+      "detergent",
+      "washing powder"
+    ],
+    "substitutes": [
+      "SKU-030",
+      "SKU-031"
+    ],
+    "item": "Surf Excel Easy Wash, 1 kg"
+  },
+  {
+    "sku": "SKU-030",
+    "unit": "pack",
+    "price": 115,
+    "stock": 30,
+    "also_called": [
+      "detergent",
+      "washing powder"
+    ],
+    "substitutes": [
+      "SKU-031"
+    ],
+    "item": "Tide Plus, 1 kg"
+  },
+  {
+    "sku": "SKU-031",
+    "unit": "pack",
+    "price": 240,
+    "stock": 12,
+    "also_called": [
+      "detergent",
+      "washing powder"
+    ],
+    "substitutes": [
+      "SKU-030"
+    ],
+    "item": "Ariel, 1 kg"
+  },
+  {
+    "sku": "SKU-032",
+    "unit": "pack",
+    "price": 20,
+    "stock": 70,
+    "also_called": [
+      "vim",
+      "bartan soap"
+    ],
+    "substitutes": [],
+    "item": "Vim Dishwash Bar, 200 g"
+  },
+  {
+    "sku": "SKU-033",
+    "unit": "pack",
+    "price": 38,
+    "stock": 60,
+    "also_called": [
+      "soap",
+      "sabun"
+    ],
+    "substitutes": [],
+    "item": "Lifebuoy Soap, 100 g"
+  },
+  {
+    "sku": "SKU-034",
+    "unit": "pack",
+    "price": 55,
+    "stock": 45,
+    "also_called": [
+      "toothpaste",
+      "paste"
+    ],
+    "substitutes": [
+      "SKU-035"
+    ],
+    "item": "Colgate Strong Teeth, 100 g"
+  },
+  {
+    "sku": "SKU-035",
+    "unit": "pack",
+    "price": 50,
+    "stock": 30,
+    "also_called": [
+      "toothpaste",
+      "paste"
+    ],
+    "substitutes": [
+      "SKU-034"
+    ],
+    "item": "Pepsodent, 100 g"
+  },
+  {
+    "sku": "SKU-036",
+    "unit": "pack",
+    "price": 35,
+    "stock": 50,
+    "also_called": [
+      "haldi",
+      "pasupu"
+    ],
+    "substitutes": [],
+    "item": "Everest Turmeric Powder, 100 g"
+  },
+  {
+    "sku": "SKU-037",
+    "unit": "pack",
+    "price": 48,
+    "stock": 40,
+    "also_called": [
+      "mirchi powder",
+      "karam"
+    ],
+    "substitutes": [],
+    "item": "Everest Red Chilli Powder, 100 g"
+  },
+  {
+    "sku": "SKU-038",
+    "unit": "pack",
+    "price": 55,
+    "stock": 30,
+    "also_called": [
+      "jeera",
+      "jilakara"
+    ],
+    "substitutes": [],
+    "item": "Cumin Seeds, 100 g"
+  },
+  {
+    "sku": "SKU-039",
+    "unit": "kg",
+    "price": 180,
+    "stock": 20,
+    "also_called": [
+      "imli",
+      "chintapandu"
+    ],
+    "substitutes": [],
+    "item": "Tamarind (loose)"
+  }
+]

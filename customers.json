@@ -1,0 +1,58 @@
+[
+  {
+    "customer_id": "C001",
+    "name": "Suresh Reddy",
+    "payment_type": "credit",
+    "credit_limit": 5000,
+    "outstanding": 4800,
+    "usual_order": "2 kg sugar, 1 Fortune oil 1 L, 1 Tata Tea Gold, 2 Parle-G"
+  },
+  {
+    "customer_id": "C002",
+    "name": "Anita Sharma",
+    "payment_type": "cash",
+    "credit_limit": null,
+    "outstanding": 0,
+    "usual_order": "5 kg Sona Masoori rice, 1 kg toor dal, 1 Gold Winner oil 1 L, 2 Lifebuoy soap"
+  },
+  {
+    "customer_id": "C003",
+    "name": "Mohammed Irfan",
+    "payment_type": "credit",
+    "credit_limit": 3000,
+    "outstanding": 1200,
+    "usual_order": "2 Basmati rice 1 kg, 1 Saffola Gold oil 1 L, 1 Tata Tea Gold"
+  },
+  {
+    "customer_id": "C004",
+    "name": "Lakshmi Devi",
+    "payment_type": "credit",
+    "credit_limit": 2000,
+    "outstanding": 0,
+    "usual_order": "2 kg sugar, 1 Red Label Tea, 2 Parle-G, 1 bread, 2 Amul Taza milk"
+  },
+  {
+    "customer_id": "C005",
+    "name": "Venkat Rao",
+    "payment_type": "credit",
+    "credit_limit": 8000,
+    "outstanding": 6500,
+    "usual_order": "1 Aashirvaad atta 10 kg, 5 kg Sona Masoori rice, 1 kg toor dal, 1 Tata Salt"
+  },
+  {
+    "customer_id": "C006",
+    "name": "Priya Nair",
+    "payment_type": "cash",
+    "credit_limit": null,
+    "outstanding": 0,
+    "usual_order": "4 Maggi noodles, 2 Lay's chips, 1 Bru coffee"
+  },
+  {
+    "customer_id": "C007",
+    "name": "Ramulu",
+    "payment_type": "credit",
+    "credit_limit": 1000,
+    "outstanding": 950,
+    "usual_order": "1 kg sugar, 5 Parle-G"
+  }
+]
