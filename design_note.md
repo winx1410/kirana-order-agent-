@@ -1,27 +1,45 @@
-# Design note: Ramesh's order-taking assistant
+# Design Note — Kirana Order-Taking Agent
 
-Ramesh takes mixed Hindi-English orders while he is packing and serving the counter. The costly failures are a wrong or incomplete order, a silent substitution, stock promised but not on the shelf, and credit that is discovered only after the goods leave. This build targets those four. "What's running low?" and "who owes more than Rs.2,000?" were left out so the agent could finish a confirmable order and an approval queue.
+### 1. Problem and priorities
 
-## Architecture
+Ramesh manages informal Hindi-English grocery orders while packing goods and serving customers. Four failures matter most: **incorrect or incomplete orders, unauthorized substitutions, unavailable stock being promised, and credit-limit violations**. I prioritized accurate order interpretation, customer confirmation, stock validation, and owner escalation because these directly affect customer trust, operational accuracy, and financial risk.
 
-One Streamlit app, not several agents. `nlu.py` sends the customer message to Gemini 3.5 Flash Lite and accepts only a validated intent: what was said, in the customer's words. `resolver.py` matches those words to the 39 catalogue rows, including loose kilograms versus 1 kg packs. `order_engine.py` owns the bill, stock reservation, credit check, and Ramesh's queue. `agent.py` decides the next step. Prices, stock, and approval never come from the model. That split is the Section 10 boundary between language judgement and deterministic code.
+Analytics questions such as “What's running low?” and “Who owes more than ₹2,000?” were deliberately excluded to keep the implementation focused on completing reliable orders.
 
-Gemini is called only when the customer submits a new chat message. Reruns, customer switches, and the owner page do not call it. The local cap is 10 requests per rolling minute and 400 per rolling 24 hours, under the free-tier dashboard limits seen earlier for this model (15 per minute and 500 per day). The cap lives in the running process. A restart clears it, and it does not replace Google's own quota. HTTP 429 and 503 stop immediately, leave the cart as it was, and are not retried.
+### 2. Architecture and tool selection
 
-## Who decides
+The solution uses **one conversational agent**, rather than multiple agents, to reduce orchestration complexity.
 
-The agent resolves a unique in-stock item, prices it from the catalogue, shows the bill, and waits for an explicit confirm. It asks when rice or oil matches more than one row, and it does not pick a variety. It offers only catalogue substitutes, and only after the customer agrees. Paneer and anything else absent from the catalogue are declined, not guessed.
+- **Streamlit (`app.py`, `pages/owner_queue.py`):** Lightweight customer chat and owner dashboard, chosen for rapid development and public deployment.
+- **Gemini 3.5 Flash Lite (`nlu.py`):** Extracts structured intent and product mentions from informal multilingual messages.
+- **Product resolver (`resolver.py`):** Matches descriptions to the fixed 39-item catalogue, normalizes units, identifies ambiguities, and restricts substitutions to approved alternatives.
+- **Conversation controller (`agent.py`):** Maintains draft carts, clarifications, customer consent, order modifications, and confirmations.
+- **Deterministic order engine (`order_engine.py`):** Calculates bills, validates stock and credit, handles approval decisions, and generates confirmed packing lists.
 
-Ramesh must approve when a credit customer's outstanding balance plus this order exceeds the limit, or when the order is above Rs.3,000. Cash orders skip the credit check. Stock is reserved only after confirm, and only after that approval when approval is required. The queue shows the order, the reason, and a recommendation.
+**Design principle:** Gemini interprets the customer's language; Python controls SKUs, catalogue prices, inventory and business rules. This prevents the LLM from independently inventing prices or authorizing exceptions.
 
-## State, cost, and what was cut
+### 3. Autonomous decisions versus escalation
 
-Orders, carts, stock changes, and the queue are in memory, loaded from `catalogue.json` and `customers.json` at startup. Section 9 allows that on a host that does not keep files between requests. It is not a shop system: a restart restores the original 39 rows and 7 customers, and every visitor of one process shares the same stock.
+The agent independently resolves unique in-stock products, prepares carts, calculates bills and explains unsupported items. It never places an order without explicit customer confirmation.
 
-On Google's free tier, listed on 12 October 2026, standard Gemini 3.5 Flash Lite input and output are free of charge, so an order inside that quota costs Rs.0. The paid Standard rates on the same page are $0.30 per 1 million input tokens and $2.50 per 1 million output tokens. Billed token counts were not measured. See the README for the calculation template.
+When rice or oil matches multiple products, the agent asks for clarification rather than choosing. Out-of-stock substitutions require explicit customer consent.
 
-This repository was built in phased sessions. Those hours were not clocked, so this note does not claim the suggested 4-hour build or the 1 to 1.5-hour write-up.
+Orders are escalated to Ramesh if **outstanding credit + order value exceeds the credit limit**, or the order exceeds **₹3,000**. Cash customers bypass credit checks. Stock is reserved only after customer confirmation and any required owner approval. Ramesh receives the order details, escalation reason and recommendation.
 
-## With another week
+### 4. Evaluation, reliability and trade-offs
 
-I would put orders, stock, and credit in a small hosted database so a restart and a second visitor do not wipe or share Ramesh's queue, and so the usage cap is enforced per account rather than per process. I would score live Gemini on the 12 scenarios, without treating today's mocked 12/12 as language accuracy, and I would log quota and parse failures separately from the customer sentence. I would also add the aliases that live calls still miss, such as an empty unit on Parle-G. The catalogue, the credit rule, and the Rs.3,000 rule would stay as they are.
+The system passed **12/12 automated outcome evaluations** covering the eight official scenarios and four additional edge cases. These used mocked Gemini intents and verified product resolution, totals, clarification, consent, stock changes and approvals. The result measures business-rule correctness under scripted interpretation, **not live Gemini accuracy**.
+
+Known limitations include occasional incomplete unit extraction, API rate-limit or availability errors, and process-local rate limiting. Gemini is called only for new customer messages, with caps of 10 requests/minute and 400 requests/rolling 24 hours. API errors preserve the draft cart.
+
+In-memory orders, stock and credit simplify deployment but reset on application restart. The public owner dashboard has no authentication, as permitted by the assignment. This is a demonstration, not a production system.
+
+### 5. Cost and scope
+
+On the documented free tier, orders within the quota have ₹0 API cost. Using the quoted paid-tier rates, an illustrative order with 1,400 input and 300 output tokens costs approximately **$0.00117**; actual token usage was not measured.
+
+The project was built across phased sessions, without formally tracked development hours. No claim is made about meeting the suggested time budget.
+
+### With another week
+
+I would prioritize database-backed orders, inventory and credit to support persistence and concurrent usage. Next, I would evaluate live Gemini on unseen multilingual and contradictory orders, improve product aliases and unusual-unit handling, and introduce structured monitoring and persistent usage controls. These would improve reliability while retaining deterministic pricing, consent and owner-approval safeguards.
