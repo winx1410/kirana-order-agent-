@@ -52,7 +52,13 @@ def test_section6_1_sugar_resolved_rice_asked_in_same_reply():
     }
     reply = result["reply"].lower()
     assert "sugar" in reply
-    assert "which" in reply
+    assert "loose, sold per kg" in reply
+    assert "5 kg sona masoori rice (loose)" in reply
+    assert "5 kg boiled rice (loose)" in reply
+    assert "sold in packs" in reply
+    assert "5 packs of india gate basmati rice, 1 kg" in reply
+    assert "i have not chosen one" in reply
+    assert result["status"] == "clarifying"
     assert result["status"] != "confirmed"
     assert result["order_id"] is None
     assert get_product("SKU-001")["stock"] == 120
@@ -219,6 +225,62 @@ def test_section6_8_rice_quantity_change_and_biscuit_cancel():
     assert "parle" not in updated["reply"].lower() or "removed" in updated["reply"].lower() or True
 
 
+def test_owner_decision_updates_status_without_another_message():
+    order_payload = {
+        "intent": "new_order",
+        "mentions": [
+            {"description": "Aashirvaad 5 kg atta", "quantity": 1, "action": "add"},
+            {"description": "toor dal", "quantity": 2, "unit": "kg", "action": "add"},
+            {"description": "Fortune oil", "quantity": 1, "unit": "L", "action": "add"},
+            {"description": "Tata Tea Gold", "quantity": 1, "action": "add"},
+        ],
+    }
+
+    def queued_agent():
+        agent = agent_for("C001", [order_payload, {"intent": "confirm", "mentions": []}])
+        agent.handle(
+            "Aashirvaad 5 kg atta, 2 kg toor dal, 1 litre Fortune oil aur 1 Tata Tea Gold bhej do"
+        )
+        agent.handle("haan, confirm")
+        return agent
+
+    approved = queued_agent()
+    assert approved.status == "awaiting_owner_approval"
+    order_engine.review_order(approved.order_id, approve=True)
+    assert approved.status == "awaiting_owner_approval"
+    approved.sync_status_from_order()
+    assert approved.status == "confirmed"
+    assert get_product("SKU-005")["stock"] == 24
+    assert get_customer("C001")["outstanding"] == 5680
+
+    order_engine.reset_state()
+    rejected = agent_for("C001", [
+        order_payload,
+        {"intent": "confirm", "mentions": []},
+        {
+            "intent": "new_order",
+            "mentions": [
+                {"description": "sugar", "quantity": 1, "unit": "kg", "action": "add"},
+            ],
+        },
+    ])
+    rejected.handle(
+        "Aashirvaad 5 kg atta, 2 kg toor dal, 1 litre Fortune oil aur 1 Tata Tea Gold bhej do"
+    )
+    rejected.handle("haan, confirm")
+    rejected_id = rejected.order_id
+    assert get_product("SKU-005")["stock"] == 25
+    order_engine.review_order(rejected_id, approve=False)
+    rejected.sync_status_from_order()
+    assert rejected.status == "rejected"
+    follow = rejected.handle("1 kg sugar")
+    assert follow["order_id"] != rejected_id
+    assert [line["sku"] for line in follow["cart"]] == ["SKU-001"]
+    assert order_engine.get_order(rejected_id)["status"] == "rejected"
+    assert get_product("SKU-005")["stock"] == 25
+    assert get_customer("C001")["outstanding"] == 4800
+
+
 def test_clarification_keeps_sugar_and_quantity():
     payloads = [
         {
@@ -289,6 +351,56 @@ def test_cancel_draft_does_not_touch_stock():
     assert result["status"] == "cancelled"
     assert result["cart"] == []
     assert get_product("SKU-014")["stock"] == 60
+
+
+def test_quota_failure_keeps_the_cart_and_does_not_retry():
+    calls = {"n": 0}
+
+    def interpret(message, context=None, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return nlu_ok({
+                "intent": "new_order",
+                "mentions": [{
+                    "description": "Fortune oil",
+                    "quantity": 1,
+                    "unit": "L",
+                    "action": "add",
+                }],
+            })
+        return {
+            "ok": False,
+            "error": "quota_exhausted",
+            "intent": None,
+            "mentions": [],
+        }
+
+    agent = KiranaAgent("C006", interpret_fn=interpret)
+    agent.handle("1 litre Fortune oil")
+    failed = agent.handle("5 Parle-G")
+
+    assert calls["n"] == 2
+    assert [line["sku"] for line in failed["cart"]] == ["SKU-014"]
+    assert "429" not in failed["reply"]
+    assert "unchanged" in failed["reply"].lower()
+    assert get_product("SKU-014")["stock"] == 60
+
+
+def test_busy_model_failure_keeps_the_cart():
+    def interpret(message, context=None, **kwargs):
+        return {
+            "ok": False,
+            "error": "model_unavailable",
+            "intent": None,
+            "mentions": [],
+        }
+
+    agent = KiranaAgent("C002", interpret_fn=interpret)
+    result = agent.handle("2 kg sugar")
+
+    assert result["cart"] == []
+    assert "503" not in result["reply"]
+    assert "busy" in result["reply"].lower()
 
 
 def test_duplicate_confirmation_does_not_deduct_stock_twice():

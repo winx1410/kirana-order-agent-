@@ -29,6 +29,24 @@ def get_agent(customer_id, session_id=None, interpret_fn=None):
     return agent
 
 
+def customer_message_for_nlu_error(error):
+    """Customer-facing text. No HTTP codes, and the caller must not retry."""
+    if error == "quota_exhausted":
+        return (
+            "I've reached the message limit for now. "
+            "Your cart is unchanged. Please try again later."
+        )
+    if error == "model_unavailable":
+        return (
+            "The assistant is busy right now. "
+            "Your cart is unchanged. Please try again in a little while."
+        )
+    return (
+        "I couldn't read that message. "
+        "Your cart is unchanged. Please try again."
+    )
+
+
 def _rupees(amount):
     if isinstance(amount, (int, float)) and float(amount).is_integer():
         return "Rs." + str(int(amount))
@@ -45,6 +63,45 @@ def _mention_clause(mention):
             parts.append(str(unit))
     parts.append(mention.get("description") or "")
     return " ".join(part for part in parts if part).strip()
+
+
+def clarification_option_label(candidate):
+    """Say how much of this catalogue line the question would add."""
+    quantity = candidate.get("quantity")
+    if isinstance(quantity, float) and quantity.is_integer():
+        quantity = int(quantity)
+    name = candidate.get("item") or "item"
+    if candidate.get("is_loose"):
+        unit = candidate.get("unit") or "kg"
+        return str(quantity) + " " + unit + " " + name
+    if candidate.get("unit") == "pack":
+        return str(quantity) + " packs of " + name
+    unit = candidate.get("unit") or ""
+    return (str(quantity) + " " + unit + " " + name).strip()
+
+
+def clarification_question(pending):
+    """Ask which match to use, and keep loose kg separate from packs."""
+    candidates = pending.get("candidates") or []
+    loose = [item for item in candidates if item.get("is_loose")]
+    packed = [item for item in candidates if not item.get("is_loose")]
+    query = pending.get("query") or "item"
+    if loose and packed:
+        return (
+            "Which "
+            + query
+            + " would you like? Loose, sold per kg: "
+            + "; ".join(clarification_option_label(item) for item in loose)
+            + ". Sold in packs: "
+            + "; ".join(clarification_option_label(item) for item in packed)
+            + ". I have not chosen one."
+        )
+
+    qty = pending.get("requested_quantity")
+    unit = pending.get("requested_unit") or ""
+    label = (str(qty) + " " + unit + " " if qty is not None else "") + query
+    options = ", ".join(clarification_option_label(item) for item in candidates)
+    return "Which " + label.strip() + " would you like: " + options + "?"
 
 
 def _cart_line(resolved):
@@ -78,6 +135,16 @@ class KiranaAgent:
         self.bill_shown = False
         self.last_notes = []
 
+    def sync_status_from_order(self):
+        """Copy the order-engine status. Does not interpret a new message."""
+        if not self.order_id:
+            return self.status
+        order = order_engine.get_order(self.order_id)
+        if order is None:
+            return self.status
+        self.status = order["status"]
+        return self.status
+
     def handle(self, message):
         customer = order_engine.get_customer(self.customer_id)
         if customer is None:
@@ -89,9 +156,7 @@ class KiranaAgent:
 
         parsed = self._interpret(text)
         if not parsed.get("ok"):
-            return self._snapshot(
-                "I didn't catch that. Please list the items, or say confirm or cancel."
-            )
+            return self._snapshot(customer_message_for_nlu_error(parsed.get("error")))
 
         intent = parsed["intent"]
         if self.status == "confirmed" and intent in ("confirm", "cancel"):
@@ -104,6 +169,18 @@ class KiranaAgent:
             existing = order_engine.get_order(self.order_id) if self.order_id else None
             if existing is not None:
                 return self._snapshot(self._placed_reply(existing))
+        if self.status == "rejected" and intent in (
+            "new_order",
+            "usual_order",
+            "add_items",
+        ):
+            self._reset_draft()
+        elif self.status == "rejected":
+            return self._snapshot(
+                "Ramesh rejected "
+                + (self.order_id or "that order")
+                + ". Nothing was reserved. Tell me what you want to order next."
+            )
         if self.status == "confirmed" and intent in (
             "new_order",
             "usual_order",
@@ -488,19 +565,7 @@ class KiranaAgent:
                 parts.append(stock_text + " There is no approved substitute.")
 
         for pending in self.pending_clarifications:
-            options = ", ".join(item["item"] for item in pending["candidates"])
-            qty = pending.get("requested_quantity")
-            unit = pending.get("requested_unit") or ""
-            label = (str(qty) + " " + unit + " " if qty is not None else "") + (
-                pending.get("query") or "item"
-            )
-            parts.append(
-                "Which "
-                + label.strip()
-                + " would you like: "
-                + options
-                + "?"
-            )
+            parts.append(clarification_question(pending))
 
         if self._ready_for_bill():
             preview = self._preview()
@@ -537,7 +602,7 @@ class KiranaAgent:
             self.status = "clarifying"
         elif self.pending_substitutions:
             self.status = "substituting"
-        elif not self.cart and self.unsupported:
+        elif not self.cart:
             self.status = "collecting"
 
         return " ".join(parts)

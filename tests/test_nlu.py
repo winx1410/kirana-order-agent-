@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 import pytest
 
@@ -322,6 +323,31 @@ def test_local_usage_cap_blocks_further_calls(monkeypatch):
     assert second["error"] == "quota_exhausted"
 
 
+def test_rpm_cap_blocks_a_second_call_in_the_same_minute(monkeypatch):
+    monkeypatch.setenv("GEMINI_RPM_LIMIT", "1")
+    monkeypatch.setenv("GEMINI_DAILY_LIMIT", "100")
+    first = nlu.interpret("haan, confirm", client=FakeClient({"intent": "confirm", "mentions": []}))
+    second = nlu.interpret("haan, confirm", client=FakeClient({"intent": "confirm", "mentions": []}))
+    assert first["ok"] is True
+    assert second["error"] == "quota_exhausted"
+
+
+def test_rolling_minute_window_drops_calls_older_than_sixty_seconds(monkeypatch):
+    monkeypatch.setenv("GEMINI_RPM_LIMIT", "1")
+    monkeypatch.setenv("GEMINI_DAILY_LIMIT", "10")
+    nlu._usage["calls"].append(time.time() - 120)
+    result = nlu.interpret("haan, confirm", client=FakeClient({"intent": "confirm", "mentions": []}))
+    assert result["ok"] is True
+
+
+def test_rolling_day_window_drops_calls_older_than_twenty_four_hours(monkeypatch):
+    monkeypatch.setenv("GEMINI_RPM_LIMIT", "10")
+    monkeypatch.setenv("GEMINI_DAILY_LIMIT", "1")
+    nlu._usage["calls"].append(time.time() - (25 * 60 * 60))
+    result = nlu.interpret("haan, confirm", client=FakeClient({"intent": "confirm", "mentions": []}))
+    assert result["ok"] is True
+
+
 def test_prompt_includes_context_and_stays_compact():
     prompt = nlu.build_prompt(
         "Sona Masoori",
@@ -340,6 +366,58 @@ def test_fenced_json_is_accepted():
     payload = nlu.parse_model_text("```json\n" + json.dumps(CLEAN_ORDER) + "\n```")
     assert payload["intent"] == "new_order"
     assert payload["mentions"][1]["quantity"] == 5
+
+
+def test_cloud_root_secrets_come_from_the_environment(monkeypatch):
+    """Cloud copies root-level secrets into the environment before the app runs.
+
+    Uses a fake key. Does not read a secrets file and does not call Gemini.
+    """
+    fake_key = "cloud-style-test-key"
+    monkeypatch.setenv("GEMINI_API_KEY", fake_key)
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    monkeypatch.setenv("GEMINI_RPM_LIMIT", "10")
+    monkeypatch.setenv("GEMINI_DAILY_LIMIT", "400")
+    nlu.reset_usage()
+    seen = {}
+
+    class _Models:
+        def generate_content(self, *, model, contents, config):
+            seen["model"] = model
+
+            class _Response:
+                text = '{"intent": "confirm", "mentions": []}'
+
+            return _Response()
+
+    class _Client:
+        def __init__(self, api_key):
+            seen["api_key"] = api_key
+            self.models = _Models()
+
+    import google.genai as genai
+
+    monkeypatch.setattr(genai, "Client", _Client)
+    result = nlu.interpret("haan, confirm")
+
+    assert result["ok"] is True
+    assert result["intent"] == "confirm"
+    assert seen["api_key"] == fake_key
+    assert seen["model"] == "gemini-3.5-flash-lite"
+    assert nlu.rpm_limit() == 10
+    assert nlu.daily_limit() == 400
+
+
+def test_config_values_fill_only_unset_keys(monkeypatch):
+    monkeypatch.delenv("GEMINI_MODEL", raising=False)
+    monkeypatch.setenv("GEMINI_RPM_LIMIT", "10")
+    nlu._apply_config_values({
+        "GEMINI_MODEL": "gemini-3.5-flash-lite",
+        "GEMINI_RPM_LIMIT": "1",
+        "GEMINI_DAILY_LIMIT": None,
+    })
+    assert os.environ["GEMINI_MODEL"] == "gemini-3.5-flash-lite"
+    assert os.environ["GEMINI_RPM_LIMIT"] == "10"
 
 
 @pytest.mark.skipif(

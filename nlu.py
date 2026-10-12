@@ -7,6 +7,8 @@ SKU matching, prices, stock and credit stay in resolver.py / order_engine.py.
 import json
 import os
 import re
+import time
+from collections import deque
 from pathlib import Path
 
 
@@ -55,8 +57,14 @@ UNIT_NORMALIZE = {
     "ml": "ml",
 }
 
-DEFAULT_MODEL = "gemini-2.5-flash"
-DEFAULT_DAILY_LIMIT = 200
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
+# Dashboard limits for Gemini 3.5 Flash Lite are 15 RPM and 500 RPD.
+# The API response did not include a reset clock, so these local caps use a
+# rolling minute and a rolling 24 hours, both below those dashboard limits.
+DEFAULT_RPM_LIMIT = 10
+DEFAULT_DAILY_LIMIT = 400
+_MINUTE_SECONDS = 60
+_DAY_SECONDS = 24 * 60 * 60
 SKU_RE = re.compile(r"^SKU-\d+$", re.I)
 
 SYSTEM_INSTRUCTION = """You extract grocery-order structure for a neighbourhood kirana shop.
@@ -94,27 +102,83 @@ RESPONSE_JSON_SCHEMA = {
     "required": ["intent", "mentions"],
 }
 
-_usage = {"calls": 0}
+_usage = {"calls": deque()}
 
 
 def reset_usage():
-    _usage["calls"] = 0
+    _usage["calls"].clear()
 
 
-def usage_count():
-    return _usage["calls"]
-
-
-def daily_limit():
-    raw = os.environ.get("GEMINI_DAILY_LIMIT", str(DEFAULT_DAILY_LIMIT))
+def _configured_limit(name, default):
+    raw = os.environ.get(name, str(default))
     try:
         return max(0, int(raw))
     except (TypeError, ValueError):
-        return DEFAULT_DAILY_LIMIT
+        return default
+
+
+def rpm_limit():
+    return _configured_limit("GEMINI_RPM_LIMIT", DEFAULT_RPM_LIMIT)
+
+
+def daily_limit():
+    return _configured_limit("GEMINI_DAILY_LIMIT", DEFAULT_DAILY_LIMIT)
+
+
+def _prune(now):
+    cutoff = now - _DAY_SECONDS
+    calls = _usage["calls"]
+    while calls and calls[0] <= cutoff:
+        calls.popleft()
+
+
+def usage_count(now=None):
+    """Calls still inside the rolling 24-hour window. Shared by this process."""
+    now = time.time() if now is None else now
+    _prune(now)
+    return len(_usage["calls"])
+
+
+def _allow_call(now):
+    """Record one call, or refuse when the shared minute or 24-hour cap is full."""
+    _prune(now)
+    minute_cutoff = now - _MINUTE_SECONDS
+    in_minute = sum(1 for stamp in _usage["calls"] if stamp > minute_cutoff)
+    if in_minute >= rpm_limit() or len(_usage["calls"]) >= daily_limit():
+        return False
+    _usage["calls"].append(now)
+    return True
+
+
+_CONFIG_KEYS = (
+    "GEMINI_API_KEY",
+    "GEMINI_MODEL",
+    "GEMINI_RPM_LIMIT",
+    "GEMINI_DAILY_LIMIT",
+)
 
 
 def model_name():
+    _ensure_config()
     return os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
+
+
+def _apply_config_values(values):
+    """Fill unset settings. Existing environment variables win."""
+    if values is None:
+        return
+    for key in _CONFIG_KEYS:
+        if key in os.environ:
+            continue
+        try:
+            value = values[key]
+        except Exception:
+            continue
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            os.environ[key] = text
 
 
 def _load_dotenv():
@@ -135,6 +199,16 @@ def _load_dotenv():
             value = value.strip().strip('"').strip("'")
             if key and key not in os.environ:
                 os.environ[key] = value
+
+
+def _ensure_config():
+    """Load a local .env without overriding variables already in the environment.
+
+    On Streamlit Community Cloud, `streamlit run` loads secrets before the
+    app starts and copies root-level strings into environment variables.
+    This module reads those variables. It does not open a secrets file.
+    """
+    _load_dotenv()
 
 
 def _error_result(code, detail=None):
@@ -356,7 +430,7 @@ def _call_gemini(prompt, client=None):
     from google.genai.errors import APIError, ClientError, ServerError
 
     if client is None:
-        _load_dotenv()
+        _ensure_config()
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
             raise RuntimeError("missing_api_key")
@@ -391,14 +465,15 @@ def _call_gemini(prompt, client=None):
 
 def interpret(message, context=None, client=None, generate=None):
     """Turn a customer utterance into validated intent JSON. Never calls the resolver."""
+    _ensure_config()
     if message is None or not str(message).strip():
         return _error_result("empty_message")
 
-    if _usage["calls"] >= daily_limit():
+    if not _allow_call(time.time()):
+        # Stop immediately. Do not retry a quota error.
         return _error_result("quota_exhausted", "local usage cap reached")
 
     prompt = build_prompt(message, context)
-    _usage["calls"] += 1
 
     try:
         if generate is not None:
